@@ -8,7 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 
 # Đặt token của bạn ở đây
-YOUR_BOT_TOKEN = os.getenv("YOUR_BOT_TOKEN") # Thay thế bằng token thực tế của bạn
+YOUR_BOT_TOKEN = os.getenv("YOUR_BOT_TOKEN")  # Thay thế bằng token thực tế của bạn
 
 # Thiết lập proxy
 proxy = {
@@ -34,9 +34,9 @@ async def export_user_messages(update, context, user_id):
     new_wb = Workbook()
     new_ws = new_wb.active
     new_ws.title = str(user_id)
-    new_ws.append(["User ID", "Message", "Title", 
-                    "Image 1", "Image 2", "Image 3", 
-                    "Image 4", "Image 5", "Image 6", 
+    new_ws.append(["User ID", "Message", "Title",
+                    "Image 1", "Image 2", "Image 3",
+                    "Image 4", "Image 5", "Image 6",
                     "Image 7", "Image 8", "Image 9"])  # Thêm tiêu đề cho 9 cột hình ảnh
 
     if user_id in user_messages:
@@ -194,10 +194,8 @@ async def read_file(update: Update, context: CallbackContext) -> None:
 
 async def export(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
-    
-    # Đặt lại trạng thái để cho phép gửi file khác
-    user_file_status[user_id] = False  # Đặt lại trạng thái
-    await update.message.reply_text("Bạn có thể gửi file mới bằng lệnh /readfile.")
+    await export_user_messages(update, context, user_id)
+    user_exported_index[user_id] = len(user_messages[user_id])
 def main() -> None:
     application = ApplicationBuilder().token(YOUR_BOT_TOKEN).build()
 
