@@ -7,9 +7,10 @@ import asyncio
 import requests
 from bs4 import BeautifulSoup
 
-YOUR_BOT_TOKEN = os.getenv("YOUR_BOT_TOKEN")  # Sử dụng token của bạn
+# Đặt token của bạn ở đây
+YOUR_BOT_TOKEN = os.getenv("YOUR_BOT_TOKEN") # Thay thế bằng token thực tế của bạn
 
-# Cấu hình proxy
+# Thiết lập proxy
 proxy = {
     'http': 'http://d3530cadb9:M91VxFDm@130.44.202.141:4444',
     'https': 'http://d3530cadb9:M91VxFDm@130.44.202.141:4444',
@@ -25,17 +26,27 @@ user_status = {}
 user_messages = {}
 user_exported_index = {}
 user_timers = {}
+user_titles = {}
+user_file_status = {}  # Trạng thái file đã gửi
 
 async def export_user_messages(update, context, user_id):
     user_file = f"{user_id}_messages.xlsx"
     new_wb = Workbook()
     new_ws = new_wb.active
     new_ws.title = str(user_id)
-    new_ws.append(["User ID", "Message"])
+    new_ws.append(["User ID", "Message", "Title", 
+                    "Image 1", "Image 2", "Image 3", 
+                    "Image 4", "Image 5", "Image 6", 
+                    "Image 7", "Image 8", "Image 9"])  # Thêm tiêu đề cho 9 cột hình ảnh
 
     if user_id in user_messages:
-        for msg in user_messages[user_id][user_exported_index[user_id]:]:
-            new_ws.append([user_id, msg])
+        for idx, msg in enumerate(user_messages[user_id][user_exported_index[user_id]:]):
+            title = user_titles[user_id][idx][0] if idx < len(user_titles[user_id]) else "Không có tiêu đề"
+            img_urls = user_titles[user_id][idx][1] if idx < len(user_titles[user_id]) else []
+
+            # Ghi vào file Excel, lưu tất cả các URL hình ảnh
+            img_row = img_urls + [""] * (12 - len(img_urls))  # Thêm ô trống nếu có ít hơn 9 ảnh
+            new_ws.append([user_id, msg, title] + img_row)  # Ghi vào Excel
 
     new_wb.save(user_file)
 
@@ -50,12 +61,16 @@ async def stop_bot(update: Update, context: CallbackContext, user_id):
         await update.message.reply_text("Bot sẽ dừng do không hoạt động trong 30 phút.")
         user_status[user_id] = False
         user_messages[user_id] = []
+        user_titles[user_id] = []
+        user_file_status[user_id] = False  # Đặt lại trạng thái file
 
 async def start(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
     user_status[user_id] = True
     user_messages[user_id] = []
+    user_titles[user_id] = []  # Khởi tạo danh sách tiêu đề và ảnh
     user_exported_index[user_id] = 0
+    user_file_status[user_id] = False  # Khởi tạo trạng thái file
     await update.message.reply_text('Xin chào! Tôi sẽ lưu tin nhắn của bạn vào file Excel từ bây giờ. Bắt đầu gửi tin nhắn!')
 
     if user_id in user_timers:
@@ -78,7 +93,7 @@ async def export(update: Update, context: CallbackContext) -> None:
 
 async def fetch_url_data(url):
     try:
-        response = requests.get(url, proxies=proxy)  # Sử dụng proxy
+        response = requests.get(url, proxies=proxy)
         response.raise_for_status()  # Kiểm tra mã trạng thái
 
         soup = BeautifulSoup(response.content, 'html.parser')
@@ -95,6 +110,7 @@ async def fetch_url_data(url):
         return title, img_urls
 
     except requests.exceptions.RequestException as e:
+        print(f"Không thể truy cập trang: {e}")
         return "Không lấy được dữ liệu", []
 
 async def echo(update: Update, context: CallbackContext) -> None:
@@ -103,14 +119,18 @@ async def echo(update: Update, context: CallbackContext) -> None:
 
     if user_status.get(user_id, False):
         user_messages[user_id].append(message_text)
-        await update.message.reply_text(f'Tin nhắn của bạn đã được lưu: "{message_text}"')
 
         # Kiểm tra nếu tin nhắn là một URL
         if message_text.startswith('http://') or message_text.startswith('https://'):
             title, img_urls = await fetch_url_data(message_text)
-            await update.message.reply_text(f'Tiêu đề: {title}\nSố lượng hình ảnh: {len(img_urls)}')
+            user_titles[user_id].append((title, img_urls))
+            num_images = len(img_urls)  # Đếm số lượng hình ảnh
+            
+            # Gửi thông báo lưu tin nhắn
+            await update.message.reply_text(f'Tin nhắn của bạn đã được lưu: "{message_text}"\nTiêu đề: {title}\nSố lượng hình ảnh: {num_images}')
         else:
-            await update.message.reply_text("Đó không phải là một URL hợp lệ.")
+            user_titles[user_id].append(("Không phải link", []))
+            await update.message.reply_text(f'Tin nhắn của bạn đã được lưu: "{message_text}"')
 
         # Thiết lập lại thời gian chờ
         if user_id in user_timers:
@@ -165,18 +185,27 @@ async def read_file(update: Update, context: CallbackContext) -> None:
         with open(output_file, 'rb') as f:
             await context.bot.send_document(chat_id=update.message.chat.id, document=f)
 
+        # Đánh dấu là đã gửi file
+        user_file_status[user_id] = True  # Đánh dấu là đã gửi file
+        
         await update.message.reply_text("File đã được xử lý. Bạn có thể gửi file mới bất kỳ lúc nào.")
     else:
         await update.message.reply_text("Vui lòng gửi file Excel để xử lý.")
 
+async def export(update: Update, context: CallbackContext) -> None:
+    user_id = update.message.from_user.id
+    
+    # Đặt lại trạng thái để cho phép gửi file khác
+    user_file_status[user_id] = False  # Đặt lại trạng thái
+    await update.message.reply_text("Bạn có thể gửi file mới bằng lệnh /readfile.")
 def main() -> None:
     application = ApplicationBuilder().token(YOUR_BOT_TOKEN).build()
-    
+
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("thongtin", thongtin))
+    application.add_handler(MessageHandler(filters.Document.ALL & ~filters.COMMAND, read_file))  # Xử lý file tải lên
     application.add_handler(CommandHandler("export", export))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
-    application.add_handler(MessageHandler(filters.Document.ALL, read_file))  # Xử lý file tải lên
 
     application.run_polling()
 
