@@ -6,6 +6,7 @@ import os
 import asyncio
 import requests
 from bs4 import BeautifulSoup
+import random
 
 # Đặt token của bạn ở đây
 YOUR_BOT_TOKEN = os.getenv("YOUR_BOT_TOKEN")  # Thay thế bằng token thực tế của bạn
