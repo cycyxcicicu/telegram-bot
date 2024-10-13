@@ -11,10 +11,89 @@ from bs4 import BeautifulSoup
 YOUR_BOT_TOKEN = os.getenv("YOUR_BOT_TOKEN")  # Thay thế bằng token thực tế của bạn
 
 # Thiết lập proxy
-proxy = {
-    'http': 'http://d3530cadb9:M91VxFDm@130.44.202.141:4444',
-    'https': 'http://d3530cadb9:M91VxFDm@130.44.202.141:4444',
-}
+proxies_list = [
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@147.53.125.79:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@147.53.125.79:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@158.62.223.154:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@158.62.223.154:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@168.91.33.188:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@168.91.33.188:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@208.52.181.96:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@208.52.181.96:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@69.58.65.116:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@69.58.65.116:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@104.244.100.200:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@104.244.100.200:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@136.0.116.214:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@136.0.116.214:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@141.164.93.102:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@141.164.93.102:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@142.252.145.216:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@142.252.145.216:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@166.88.127.246:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@166.88.127.246:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@168.91.39.173:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@168.91.39.173:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@209.73.147.188:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@209.73.147.188:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@136.0.110.239:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@136.0.110.239:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@138.229.105.226:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@138.229.105.226:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@147.53.123.94:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@147.53.123.94:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@168.91.36.98:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@168.91.36.98:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@168.91.47.160:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@168.91.47.160:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@192.177.109.190:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@192.177.109.190:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@136.0.46.198:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@136.0.46.198:4444',
+    },
+    {
+        'http': 'http://d3530cadb9:M91VxFDm@147.53.114.204:4444',
+        'https': 'http://d3530cadb9:M91VxFDm@147.53.114.204:4444',
+    }
+]
+
 
 # Tạo file Excel nếu không tồn tại
 excel_file = "messages.xlsx"
@@ -92,6 +171,7 @@ async def export(update: Update, context: CallbackContext) -> None:
     user_exported_index[user_id] = len(user_messages[user_id])
 
 async def fetch_url_data(url):
+    proxy = random.choice(proxies_list)
     try:
         response = requests.get(url, proxies=proxy)
         response.raise_for_status()  # Kiểm tra mã trạng thái
