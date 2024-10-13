@@ -12,15 +12,8 @@ import random
 YOUR_BOT_TOKEN = os.getenv("YOUR_BOT_TOKEN")  # Thay thế bằng token thực tế của bạn
 
 # Thiết lập proxy
+# Thiết lập proxy
 proxies_list = [
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@147.53.125.79:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@147.53.125.79:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@158.62.223.154:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@158.62.223.154:4444',
-    },
     {
         'http': 'http://d3530cadb9:M91VxFDm@168.91.33.188:4444',
         'https': 'http://d3530cadb9:M91VxFDm@168.91.33.188:4444',
@@ -34,44 +27,12 @@ proxies_list = [
         'https': 'http://d3530cadb9:M91VxFDm@69.58.65.116:4444',
     },
     {
-        'http': 'http://d3530cadb9:M91VxFDm@104.244.100.200:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@104.244.100.200:4444',
-    },
-    {
         'http': 'http://d3530cadb9:M91VxFDm@136.0.116.214:4444',
         'https': 'http://d3530cadb9:M91VxFDm@136.0.116.214:4444',
     },
     {
-        'http': 'http://d3530cadb9:M91VxFDm@141.164.93.102:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@141.164.93.102:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@142.252.145.216:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@142.252.145.216:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@166.88.127.246:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@166.88.127.246:4444',
-    },
-    {
         'http': 'http://d3530cadb9:M91VxFDm@168.91.39.173:4444',
         'https': 'http://d3530cadb9:M91VxFDm@168.91.39.173:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@209.73.147.188:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@209.73.147.188:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@136.0.110.239:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@136.0.110.239:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@138.229.105.226:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@138.229.105.226:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@147.53.123.94:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@147.53.123.94:4444',
     },
     {
         'http': 'http://d3530cadb9:M91VxFDm@168.91.36.98:4444',
@@ -80,20 +41,9 @@ proxies_list = [
     {
         'http': 'http://d3530cadb9:M91VxFDm@168.91.47.160:4444',
         'https': 'http://d3530cadb9:M91VxFDm@168.91.47.160:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@192.177.109.190:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@192.177.109.190:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@136.0.46.198:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@136.0.46.198:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@147.53.114.204:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@147.53.114.204:4444',
     }
 ]
+
 
 
 # Tạo file Excel nếu không tồn tại
@@ -121,7 +71,7 @@ async def export_user_messages(update, context, user_id):
 
     if user_id in user_messages:
         for idx, msg in enumerate(user_messages[user_id][user_exported_index[user_id]:]):
-            title = user_titles[user_id][idx][0] if idx < len(user_titles[user_id]) else "Không có tiêu đề"
+            title = clean_string(user_titles[user_id][idx][0] if idx < len(user_titles[user_id]) else "Không có tiêu đề")
             img_urls = user_titles[user_id][idx][1] if idx < len(user_titles[user_id]) else []
 
             # Ghi vào file Excel, lưu tất cả các URL hình ảnh
@@ -233,6 +183,11 @@ async def read_excel_file(file_path):
             results.append({'URL': url, 'Title': title, 'Images': img_urls})
 
     return results
+def clean_string(value):
+    if isinstance(value, str):
+        # Loại bỏ ký tự không hợp lệ
+        return ''.join(char for char in value if char.isprintable())
+    return value
 
 async def read_file(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
@@ -257,7 +212,7 @@ async def read_file(update: Update, context: CallbackContext) -> None:
         output_ws.append(["URL", "Title"] + [f"Image URL {i+1}" for i in range(max(len(result['Images']) for result in results))])  # Tiêu đề cột
 
         for result in results:
-            row = [result['URL'], result['Title']]
+            row = [result['URL'], clean_string(result['Title'])]
             row.extend(result['Images'])  # Thêm từng link hình ảnh vào hàng
             output_ws.append(row)
 
