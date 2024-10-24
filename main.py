@@ -240,7 +240,7 @@ def main() -> None:
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("thongtin", thongtin))
-    #application.add_handler(MessageHandler(filters.Document.ALL & ~filters.COMMAND, read_file))  # Xử lý file tải lên
+    application.add_handler(MessageHandler(filters.Document.ALL & ~filters.COMMAND, read_file))  # Xử lý file tải lên
     application.add_handler(CommandHandler("export", export))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
