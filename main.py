@@ -212,7 +212,7 @@ async def read_file(update: Update, context: CallbackContext) -> None:
                 count += 1  # Tăng biến đếm
                 if count % 20 == 0:
                     await update.message.reply_text(f"Đã xử lý {count} liên kết...")
-                    await asyncio.sleep(0)
+                    await asyncio.sleep(0.5)
                 # Lưu file tạm sau mỗi liên kết được xử lý
                 output_wb.save(output_file)
 
