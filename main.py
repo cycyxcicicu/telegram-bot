@@ -162,7 +162,9 @@ async def read_excel_file(file_path):
         worksheet = df[sheet]
         for row in worksheet.iter_rows(min_row=2, values_only=True):  # Bỏ qua hàng tiêu đề
             url = row[0]  # Giả sử link nằm ở cột đầu tiên
-            await asyncio.sleep(random.uniform(1, 3))
+            if not url or url.strip() == "":
+                continue
+            await asyncio.sleep(random.uniform(1, 2))
             title, img_urls = await fetch_url_data(url)
             results.append({'URL': url, 'Title': title, 'Images': img_urls})
 
