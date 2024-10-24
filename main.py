@@ -13,38 +13,16 @@ YOUR_BOT_TOKEN = os.getenv("YOUR_BOT_TOKEN")  # Thay thế bằng token thực t
 
 # Thiết lập proxy
 # Thiết lập proxy
+# Lấy danh sách proxy từ biến môi trường
+proxy_list_string = os.getenv("PROXY_LIST", "")
+proxies = proxy_list_string.split(',')  # Tách chuỗi thành danh sách dựa trên dấu phẩy
 proxies_list = [
     {
-        'http': 'http://d3530cadb9:M91VxFDm@168.91.33.188:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@168.91.33.188:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@208.52.181.96:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@208.52.181.96:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@69.58.65.116:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@69.58.65.116:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@136.0.116.214:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@136.0.116.214:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@168.91.39.173:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@168.91.39.173:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@168.91.36.98:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@168.91.36.98:4444',
-    },
-    {
-        'http': 'http://d3530cadb9:M91VxFDm@168.91.47.160:4444',
-        'https': 'http://d3530cadb9:M91VxFDm@168.91.47.160:4444',
+        'http': proxy.strip(),
+        'https': proxy.strip(),
     }
+    for proxy in proxies if proxy.strip()  # Loại bỏ proxy trống
 ]
-
-
 
 # Tạo file Excel nếu không tồn tại
 excel_file = "messages.xlsx"
@@ -111,8 +89,8 @@ async def thongtin(update: Update, context: CallbackContext) -> None:
     commands_info = (
         "/start - Bắt đầu lưu tin nhắn.",
         "/export - Xuất tin nhắn đã lưu.",
-        "/thongtin - Hiển thị thông tin về các lệnh hỗ trợ.",
-        "/readfile - Đọc file Excel và lấy dữ liệu sản phẩm."
+        "/thongtin - Hiển thị thông tin về các lệnh hỗ trợ."
+        #"/readfile - Đọc file Excel và lấy dữ liệu sản phẩm."
     )
     await update.message.reply_text("\n".join(commands_info))
 
@@ -122,27 +100,32 @@ async def export(update: Update, context: CallbackContext) -> None:
     user_exported_index[user_id] = len(user_messages[user_id])
 
 async def fetch_url_data(url):
-    proxy = random.choice(proxies_list)
-    try:
-        response = requests.get(url, proxies=proxy)
-        response.raise_for_status()  # Kiểm tra mã trạng thái
+    max_retries = 3  # Số lần thử lại nếu không thành công
+    for _ in range(max_retries):
+        proxy = random.choice(proxies_list)
+        try:
+            response = requests.get(url, proxies=proxy, timeout=8)
+            response.raise_for_status()  # Kiểm tra mã trạng thái
 
-        soup = BeautifulSoup(response.content, 'html.parser')
+            soup = BeautifulSoup(response.content, 'html.parser')
 
-        # Lấy tiêu đề từ thẻ <div> có class 'index-title--AnTxK'
-        title_div = soup.find('div', class_='index-title--AnTxK')
-        title = title_div.get_text() if title_div else "Không tìm thấy tiêu đề."
+            # Lấy tiêu đề từ thẻ <div> có class 'index-title--AnTxK'
+            title_div = soup.find('div', class_='index-title--AnTxK')
+            title = title_div.get_text() if title_div else "Không tìm thấy tiêu đề."
 
-        # Kiểm tra sự tồn tại của slick-track và lấy hình ảnh
-        slick_track = soup.find('div', class_='slick-track')
-        img_tags = slick_track.find_all('img') if slick_track else []
-        img_urls = [img.get('src') for img in img_tags if img.get('src')]
+            # Kiểm tra sự tồn tại của slick-track và lấy hình ảnh
+            slick_track = soup.find('div', class_='slick-track')
+            img_tags = slick_track.find_all('img') if slick_track else []
+            img_urls = [img.get('src') for img in img_tags if img.get('src')]
+            if not img_urls:
+                img_urls = ["Không tìm thấy hình ảnh."]
 
-        return title, img_urls
+            return title, img_urls
 
-    except requests.exceptions.RequestException as e:
-        print(f"Không thể truy cập trang: {e}")
-        return "Không lấy được dữ liệu", []
+        except requests.exceptions.RequestException as e:
+            print(f"Không thể truy cập trang: {e}")
+            continue
+    return "Không lấy được dữ liệu", []
 
 async def echo(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
@@ -164,7 +147,7 @@ async def echo(update: Update, context: CallbackContext) -> None:
             await update.message.reply_text(f'Tin nhắn của bạn đã được lưu: "{message_text}"')
 
         # Thiết lập lại thời gian chờ
-        if user_id in user_timers:
+        if user_id in user_timers and user_timers[user_id]:
             user_timers[user_id].cancel()
         user_timers[user_id] = asyncio.create_task(stop_bot(update, context, user_id))
     else:
@@ -179,6 +162,7 @@ async def read_excel_file(file_path):
         worksheet = df[sheet]
         for row in worksheet.iter_rows(min_row=2, values_only=True):  # Bỏ qua hàng tiêu đề
             url = row[0]  # Giả sử link nằm ở cột đầu tiên
+            await asyncio.sleep(random.uniform(1, 3))
             title, img_urls = await fetch_url_data(url)
             results.append({'URL': url, 'Title': title, 'Images': img_urls})
 
@@ -188,7 +172,7 @@ def clean_string(value):
         # Loại bỏ ký tự không hợp lệ
         return ''.join(char for char in value if char.isprintable())
     return value
-
+MAX_FILE_SIZE = 5 * 1024 * 1024
 async def read_file(update: Update, context: CallbackContext) -> None:
     user_id = update.message.from_user.id
 
@@ -199,28 +183,47 @@ async def read_file(update: Update, context: CallbackContext) -> None:
 
     # Kiểm tra nếu có file được gửi
     if update.message.document:
+        if update.message.document.file_size > MAX_FILE_SIZE:
+            await update.message.reply_text("File quá lớn, vui lòng gửi file nhỏ hơn 5MB.")
+            return
+        
         file = await update.message.document.get_file()
         input_file = f"{user_id}_input_file.xlsx"
-        await file.download_to_drive(input_file)  # Tải file về
-
-        results = await read_excel_file(input_file)
-
+        try:
+            await file.download_to_drive(input_file)  # Tải file về
+            await update.message.reply_text("Hãy chờ tôi xử lý file của bạn...")
+            results = await read_excel_file(input_file)
+        except Exception as e:
+            await update.message.reply_text(f"Lỗi khi đọc file: {e}")
+            return
         # Tạo file Excel mới với kết quả
         output_file = f"{user_id}_output.xlsx"
         output_wb = Workbook()
         output_ws = output_wb.active
         output_ws.append(["URL", "Title"] + [f"Image URL {i+1}" for i in range(max(len(result['Images']) for result in results))])  # Tiêu đề cột
+        count = 0  # Biến đếm số lượng liên kết đã xử lý
+        try:
+            for result in results:
+                row = [result['URL'], clean_string(result['Title'])]
+                row.extend(result['Images'])  # Thêm từng link hình ảnh vào hàng
+                output_ws.append(row)
+                count += 1  # Tăng biến đếm
+                if count % 20 == 0:
+                    await update.message.reply_text(f"Đã xử lý {count} liên kết...")
+                # Lưu file tạm sau mỗi liên kết được xử lý
+                output_wb.save(output_file)
 
-        for result in results:
-            row = [result['URL'], clean_string(result['Title'])]
-            row.extend(result['Images'])  # Thêm từng link hình ảnh vào hàng
-            output_ws.append(row)
-
+        except Exception as e:
+            await update.message.reply_text(f"Đã xảy ra lỗi sau khi xử lý {count} liên kết: {e}")
+            # Sau khi có lỗi, gửi file với những gì đã xử lý
+            with open(output_file, 'rb') as f:
+                await context.bot.send_document(chat_id=update.message.chat.id, document=f)
+            return
+        # Sau khi xử lý hết, gửi file kết quả hoàn chỉnh
         output_wb.save(output_file)
 
         with open(output_file, 'rb') as f:
             await context.bot.send_document(chat_id=update.message.chat.id, document=f)
-
         # Đánh dấu là đã gửi file
         user_file_status[user_id] = True  # Đánh dấu là đã gửi file
         
@@ -237,7 +240,7 @@ def main() -> None:
 
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("thongtin", thongtin))
-    application.add_handler(MessageHandler(filters.Document.ALL & ~filters.COMMAND, read_file))  # Xử lý file tải lên
+    #application.add_handler(MessageHandler(filters.Document.ALL & ~filters.COMMAND, read_file))  # Xử lý file tải lên
     application.add_handler(CommandHandler("export", export))
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
 
