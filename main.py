@@ -104,7 +104,7 @@ async def fetch_url_data(url):
     for _ in range(max_retries):
         proxy = random.choice(proxies_list)
         try:
-            response = requests.get(url, proxies=proxy, timeout=8)
+            response = requests.get(url, proxies=proxy, timeout=30)
             response.raise_for_status()  # Kiểm tra mã trạng thái
 
             soup = BeautifulSoup(response.content, 'html.parser')
